@@ -60,7 +60,7 @@ workflow HICSCAFF {
     /*
      * SUBWORKFLOW: Read in samplesheet, validate and stage input files
      */
-    INPUT_CHECK ( 
+    INPUT_CHECK (
         ch_input
     )
 
@@ -70,8 +70,40 @@ workflow HICSCAFF {
     FASTQC (
         INPUT_CHECK.out.reads
     )
+
+    /*
+    Inputs:
+        Assemblies
+        Hi Libraries - assembly specific? i.e. pairing or crossing input
+        Enzyme - library specific? DpnII (dovetail), “Arima”, no enzyme / DNAse (map to juicer options)
+        Parameter: 3D-DNA minimum input scaff size
+    Processes:
+        Index:
+        Mapping: special params
+        metrics?: assembly in scaffolds > 5Kb, 10Kb, 15Kb
+        sitepos script with enzyme (for 3D-DNA input)
+        Dovetail_tools (https://github.com/dovetail-genomics/dovetail_tools)
+            preseq lc_extrap which is prone to fail
+        Convert pairsam file to formats compatible with 3D-DNA (merged_nodups) and salsa2
+        Scaffolding:
+            - 3D-DNA
+            - salsa2
+        Quast
+        Busco
+    Output:
+        .genome file
+        Sitepos file
+        Stats.txt
+        Pairsam.pairs.gz
+        .preseq
+        Merged_nodups.txt
+        Contacts.bed
+
+    */
+    BWA_INDEX(
+    )
     ch_software_versions = ch_software_versions.mix(FASTQC.out.version.first().ifEmpty(null))
-    
+
 
     /*
      * MODULE: Pipeline reporting
@@ -84,7 +116,7 @@ workflow HICSCAFF {
         .flatten()
         .collect()
         .set { ch_software_versions }
-    GET_SOFTWARE_VERSIONS ( 
+    GET_SOFTWARE_VERSIONS (
         ch_software_versions
     )
 
@@ -100,7 +132,7 @@ workflow HICSCAFF {
     ch_multiqc_files = ch_multiqc_files.mix(ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
     ch_multiqc_files = ch_multiqc_files.mix(GET_SOFTWARE_VERSIONS.out.yaml.collect())
     ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]}.ifEmpty([]))
-    
+
     MULTIQC (
         ch_multiqc_files.collect()
     )
