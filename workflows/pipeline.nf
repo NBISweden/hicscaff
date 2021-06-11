@@ -60,16 +60,14 @@ workflow HICSCAFF {
     /*
      * SUBWORKFLOW: Read in samplesheet, validate and stage input files
      */
-    INPUT_CHECK (
-        ch_input
-    )
+    INPUT_CHECK (ch_input)
+        // - reads : [ meta, reads ]
+        // - assemblies : [meta, assembly]
 
     /*
      * MODULE: Run FastQC
      */
-    FASTQC (
-        INPUT_CHECK.out.reads
-    )
+    FASTQC (INPUT_CHECK.out.reads)
 
     /*
     Inputs:
