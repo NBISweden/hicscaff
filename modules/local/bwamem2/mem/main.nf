@@ -19,8 +19,7 @@ process BWAMEM2_MEM {
     }
 
     input:
-    tuple val(meta), path(reads)
-    path  index
+    tuple val(meta), path(reads), path (index)
 
     output:
     tuple val(meta), path("*.bam"), emit: bam
