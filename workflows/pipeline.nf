@@ -64,10 +64,14 @@ workflow HICSCAFF {
         // - reads : [ meta, reads ]
         // - assemblies : [meta, assembly]
 
-    /*
-     * MODULE: Run FastQC
-     */
     FASTQC (INPUT_CHECK.out.reads)
+
+    BWAMEM2_INDEX(INPUT_CHECK.out.assemblies)   // TODO:: custom
+    QUAST(INPUT_CHECK.out.assemblies)           // TODO:: custom
+    BUSCO(INPUT_CHECK.out.assemblies)           // TODO:: local
+
+    BWAMEM2_MEM(INPUT_CHECK.out.reads.join(BWAMEM2_INDEX.out.index))
+    PRESEQ_LCEXTRAP(BWAMEM2_MEM.out.bam)
 
     /*
     Inputs:
