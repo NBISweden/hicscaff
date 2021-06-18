@@ -64,14 +64,38 @@ workflow HICSCAFF {
         // - reads : [ meta, reads ]
         // - assemblies : [meta, assembly]
 
+    // Hi-C QC
     FASTQC (INPUT_CHECK.out.reads)
-
-    BWAMEM2_INDEX(INPUT_CHECK.out.assemblies)   // TODO:: custom
+    // Assembly QC
     QUAST(INPUT_CHECK.out.assemblies)           // TODO:: custom
     BUSCO(INPUT_CHECK.out.assemblies)           // TODO:: local
-
+    // Hi-C to Assembly Alignment
+    // Alternative - HiC Pro?
+    BWAMEM2_INDEX(INPUT_CHECK.out.assemblies)   // TODO:: custom
     BWAMEM2_MEM(INPUT_CHECK.out.reads.join(BWAMEM2_INDEX.out.index))
-    PRESEQ_LCEXTRAP(BWAMEM2_MEM.out.bam)
+    // Hi-C QC
+    PRESEQ_LCEXTRAP(BWAMEM2_MEM.out.bam)        // What about duplication rate?
+    // Hi-C Alignment Contig Orientation processing packages
+    // 1) PAIRTOOLS + COOLER
+    PAIRTOOLS_PARSE(BWAMEM2_MEM.out.bam)        // Parse and sort
+    PAIRTOOLS_DEDUP(PAIRTOOLS_PARSE.out.pairs)  // Deduplicate
+    PAIRTOOLS_SELECT(PAIRTOOLS_DEDUP.out.pairs)
+    PAIRTOOLS_SPLIT(PAIRTOOLS_SELECT.out.pairs)
+    COOLER(PAIRTOOLS_SPLIT.out.pairs)
+
+    // 2) 3D-DNA + JUICER
+    BWAMEM2_INDEX()
+    JUICER()
+    THREEDDNA()
+    JBAT()
+
+    // 3) (2) + HiC-Hiker (https://github.com/ryought/hic_hiker)
+
+    // 4) Salsa2
+    BEDTOOLS_BAM2BED(BWAMEM2_MEM.out.bam) // Can I sort by name with bam2bed? Maybe samtools sort?
+    SAMTOOLS_FAIDX(INPUT_CHECK.out.assemblies)
+    SALSA2(BEDTOOLS_BAM2BED.out.bed.join(SAMTOOLS_FAIDX.out.index))
+
 
     /*
     Inputs:
@@ -83,7 +107,7 @@ workflow HICSCAFF {
         Index:
         Mapping: special params
         metrics?: assembly in scaffolds > 5Kb, 10Kb, 15Kb
-        sitepos script with enzyme (for 3D-DNA input)
+        sitepos script with enzyme (for 3D-DNA input) https://github.com/theaidenlab/juicer/blob/master/misc/generate_site_positions.py
         Dovetail_tools (https://github.com/dovetail-genomics/dovetail_tools)
             preseq lc_extrap which is prone to fail
         Convert pairsam file to formats compatible with 3D-DNA (merged_nodups) and salsa2
